@@ -73,4 +73,3 @@ class EmptyNode(Node):
 
     def __str__(self):
         return "EmptyNode()"
-    

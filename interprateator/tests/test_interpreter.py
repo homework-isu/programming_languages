@@ -5,61 +5,63 @@ from interpreter.interpreter import NodeVisitor
 from interpreter.token import Token, TokenType
 
 
-@pytest.fixture(scope="function")
-def interpreter():
-    return Interpreter()
+def make_pascal_code(exp):
+    return f"BEGIN\nx:={exp};\nEND."
 
 
 class TestInterpreter:
     interpreter = Interpreter()
 
-    def test_add(self, interpreter):
-        assert interpreter.eval("2+2") == 4
+    def test_add(self):
+        assert self.interpreter.eval(make_pascal_code("2+2")) == {"x": 4}
 
-    def test_sub(self, interpreter):
-        assert interpreter.eval("2-2") == 0
+    def test_sub(self):
+        assert self.interpreter.eval(make_pascal_code("2-2")) == {"x": 0}
 
-    def test_mul(self, interpreter):
-        assert interpreter.eval("2*2") == 4
+    def test_mul(self):
+        assert self.interpreter.eval(make_pascal_code("2*2")) == {"x": 4}
 
-    def test_div(self, interpreter):
-        assert interpreter.eval("2/2") == 1
+    def test_div(self):
+        assert self.interpreter.eval(make_pascal_code("2/2")) == {"x": 1}
 
-    def test_add_with_letter(self, interpreter):
-        with pytest.raises(SyntaxError):
-            interpreter.eval("2+a")
-        with pytest.raises(SyntaxError):
-            interpreter.eval("t+2")
-
-    def test_wrong_operator(self, interpreter):
-        with pytest.raises(SyntaxError):
-            interpreter.eval("2&3")
-
-    def test_add_with_spaces(self, interpreter):
-        assert interpreter.eval("2 + 2") == 4
-
-    def test_unary_minus(self, interpreter):
-        assert interpreter.eval("-1") == -1
-
-    def test_unary_plus(self, interpreter):
-        assert interpreter.eval("+1") == 1
-
-    def test_unary_expression(self, interpreter):
-        assert interpreter.eval("-(1+1)") == -2
-
-    def test_visit_invalid_node(self, interpreter):
-        node = "invalid"
+    def test_add_with_letter(self):
         with pytest.raises(ValueError):
-            interpreter.visit(node)
-
-    def test_node_visitor_visit(self):
-        nv = NodeVisitor()
-        nv.visit()
-
-    def test_interpreter_visit_bin_op_error(self, interpreter):
+            self.interpreter.eval(make_pascal_code("2+a"))
         with pytest.raises(ValueError):
-            assert interpreter.visit(BinOp(Number(1), Token(TokenType.OPERATOR, "&"), Number(2)))
+            self.interpreter.eval(make_pascal_code("a+2"))
 
-    def test_interpreter_visit_unary_op_error(self, interpreter):
+    def test_wrong_operator(self):
+        with pytest.raises(SyntaxError):
+            self.interpreter.eval(make_pascal_code("1$2"))
+
+    def test_add_with_spaces(self):
+        codes = [
+            "2 + 2",
+            " 2+ 2 ",
+            " 2+2",
+            "   2 +       2"
+        ]
+        for code in codes:
+            assert self.interpreter.eval(make_pascal_code(code)) == {"x": 4}
+
+    def test_unary_minus(self):
+        assert self.interpreter.eval(make_pascal_code("-1")) == {"x": -1}
+
+    def test_unary_plus(self):
+        assert self.interpreter.eval(make_pascal_code("+1")) == {"x": 1}
+
+    def test_unary_expression(self):
+        assert self.interpreter.eval(make_pascal_code("-(2-1)")) == {"x": -1}
+
+    def test_visit_invalid_node(self):
+        node = None
         with pytest.raises(ValueError):
-            assert interpreter.visit(UnaryOp(Token(TokenType.OPERATOR, "^"), Number(1)))
+            self.interpreter.visit(node)
+
+    def test_interpreter_visit_bin_op_error(self):
+        with pytest.raises(ValueError):
+            self.interpreter.visit(BinOp(Number(1), Token(TokenType.OPERATOR, "&"), Number(2)))
+
+    def test_interpreter_visit_unary_op_error(self):
+        with pytest.raises(ValueError):
+            self.interpreter.visit(UnaryOp(Token(TokenType.OPERATOR, "^"), Number(1)))

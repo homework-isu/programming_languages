@@ -77,7 +77,7 @@ class Lexer:
                 case ",":
                     return self.operator_token(TokenType.COMMA)
                 case char if char.isalpha():
-                    return self.read_keyword()
+                    return self.keyword()
                 case char if char.isdigit():
                     return Token(TokenType.NUMBER, self.number())
 
