@@ -1,6 +1,6 @@
 from .token import Token, TokenType
 from .lexer import Lexer
-from .ast import BinOp, Number, UnaryOp
+from .ast import BinOp, Number, UnaryOp, Var, Assign, ComplexStatement, EmptyNode, Block
 
 
 class Parser:
@@ -12,51 +12,95 @@ class Parser:
         if self._current_token and self._current_token.type_ == type_:
             self._current_token = self._lexer.next()
         else:
-            raise SyntaxError("invalid token order")
+            raise SyntaxError("Invalid token order")
+
+    def block(self):
+        complex_statement = self.complex_statement()
+        return Block(complex_statement)
+
+    def complex_statement(self):
+        self.check_token(TokenType.BEGIN)
+        nodes = self.statement_list()
+        self.check_token(TokenType.END)
+        root = ComplexStatement()
+
+        for statement in nodes:
+            root.children.append(statement)
+
+        return root
+
+    def statement_list(self):
+        node = self.statement()
+        results = [node]
+        while self._current_token and self._current_token.type_ == TokenType.SEMICOLON:
+            self.check_token(TokenType.SEMICOLON)
+            results.append(self.statement())
+        return results
+
+    def statement(self):
+        if self._current_token and self._current_token.type_ == TokenType.BEGIN:
+            return self.complex_statement()
+        elif self._current_token and self._current_token.type_ == TokenType.ID:
+            return self.assign()
+        else:
+            return self.empty()
+
+    def assign(self):
+        left = self.variable()
+        token = self._current_token
+        self.check_token(TokenType.ASSIGN)
+        right = self.expr()
+        return Assign(left, token, right)
+
+    def variable(self):
+        token = self._current_token
+        self.check_token(TokenType.ID)
+        return Var(token)
 
     def factor(self):
         token = self._current_token
         if not token:
             raise SyntaxError("Invalid factor")
-        if token.type_ == TokenType.NUMBER:
+        elif token.type_ == TokenType.NUMBER:
             self.check_token(TokenType.NUMBER)
             return Number(token)
-        if token.type_ == TokenType.LPAREN:
+        elif token.type_ == TokenType.ID:
+            self.check_token(TokenType.ID)
+            return Var(token)
+        elif token.type_ == TokenType.LPAREN:
             self.check_token(TokenType.LPAREN)
             result = self.expr()
             self.check_token(TokenType.RPAREN)
             return result
-        if token.type_ == TokenType.OPERATOR:
+        elif token.type_ == TokenType.OPERATOR and token.value in ["+", "-"]:
             self.check_token(TokenType.OPERATOR)
             return UnaryOp(token, self.factor())
         raise SyntaxError("Invalid factor")
 
-    @property
     def term(self):
         result = self.factor()
-        while (
-            self._current_token
-            and self._current_token.type_ == TokenType.OPERATOR
-            and self._current_token.value in ["*", "/"]
-        ):
+        while (self._current_token
+               and self._current_token.type_ == TokenType.OPERATOR
+               and self._current_token.value in ["*", "/"]):
             token = self._current_token
             self.check_token(TokenType.OPERATOR)
-            return BinOp(result, token, self.factor())
+            return BinOp(result, token, self.term())
         return result
 
     def expr(self):
-        result = self.term
-        while (
-            self._current_token
-            and self._current_token.type_ == TokenType.OPERATOR
-            and self._current_token.value in ["+", "-"]
-        ):
+        result = self.term()
+        while self._current_token and self._current_token.type_ == TokenType.OPERATOR:
             token = self._current_token
             self.check_token(TokenType.OPERATOR)
-            result = BinOp(result, token, self.term)
+            result = BinOp(result, token, self.term())
         return result
+
+    def empty(self):
+        return EmptyNode()
 
     def parse(self, code):
         self._lexer.init(code)
         self._current_token = self._lexer.next()
-        return self.expr()
+        result = self.block()
+        self.check_token(TokenType.DOT)
+        return result
