@@ -13,40 +13,16 @@ def clear_console():
 
 def main():
     interp = Interpreter()
-    examples_dir = 'pascal'
+    filepath = "pascal/1.pas"
 
-    while True:
-        clear_console()
-        print("\nAvailable files:")
-        files = list_files(examples_dir)
-        for i, file in enumerate(files, start=1):
-            print(f"{i}. {file}")
+    with open(filepath, "r") as file:
+        code = file.read()
 
-        print("\nEnter the number of the file to run (0 to exit):")
-        choice = input(">> ")
-
-        if choice == '0':
-            print("Exiting...")
-            break
-
-        try:
-            file_index = int(choice) - 1
-            selected_file = files[file_index]
-            file_path = os.path.join(examples_dir, selected_file)
-
-            with open(file_path, 'r') as f:
-                code = f.read()
-
-            try:
-                result = interp.eval(code)
-                print(result)
-            except (SyntaxError, ValueError, TypeError) as e:
-                print(f"{type(e).__name__}: {e}", file=sys.stderr)
-
-            input("Press Enter to continue...")
-
-        except (ValueError, IndexError):
-            print("Invalid choice. Please enter a valid file number.")
+    result = interp.eval(code)
+    print("Pascal code:")
+    print(code)
+    print("Result:")
+    print(result)
 
 
 if __name__ == "__main__":
