@@ -10,7 +10,7 @@ class Number(Node):
         self.token = token
 
     def __str__(self):
-        return f"Number ({self.token})"
+        return f"Number({self.token})"
 
 
 class BinOp(Node):
